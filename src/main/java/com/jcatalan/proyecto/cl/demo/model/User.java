@@ -16,13 +16,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String uuid;
+    private String created;
+    private String lastLogin;
+    private String token;
+    private Boolean isActive;
     private String name;
     private String email;    
     private String password;
-    private String created;
-    private String token;
-    private Boolean isActive;
-    private String lastLogin;
     
     @OneToMany(targetEntity=Phone.class)
     private List<Phone> phones;

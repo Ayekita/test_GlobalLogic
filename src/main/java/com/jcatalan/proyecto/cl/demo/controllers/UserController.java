@@ -1,28 +1,27 @@
 package com.jcatalan.proyecto.cl.demo.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jcatalan.proyecto.cl.demo.error.ErrorInfo;
 import com.jcatalan.proyecto.cl.demo.error.ErrorOut;
+import com.jcatalan.proyecto.cl.demo.function.Utils;
 import com.jcatalan.proyecto.cl.demo.model.Phone;
 import com.jcatalan.proyecto.cl.demo.model.User;
+import com.jcatalan.proyecto.cl.demo.model.UserCreateOut;
 import com.jcatalan.proyecto.cl.demo.service.PhoneService;
 import com.jcatalan.proyecto.cl.demo.service.UserService;
-import com.jcatalan.proyecto.cl.demo.service.repository.PhoneRepository;
-import com.jcatalan.proyecto.cl.demo.service.repository.Token;
-import com.jcatalan.proyecto.cl.demo.service.repository.UserRepository;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,15 +30,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.validation.Valid;
-
 @RestController
 @RequestMapping("/v1")
 public class UserController {
-	@Autowired
-	private UserRepository repository;
+	private final String HEADER = "Authorization";
+	private final String PREFIX = "Bearer ";
 	
-
     @Autowired
     private UserService userService;
     
@@ -57,6 +53,44 @@ public class UserController {
         Optional<User> user = userService.get(id);
         return new ResponseEntity(user, HttpStatus.OK);
     }
+    
+    
+    @RequestMapping(value = "/login", method = RequestMethod.GET)
+    public ResponseEntity userByToken(@RequestHeader HttpHeaders headers) {
+
+		String authenticationHeader = headers.get(HEADER).get(0);
+		
+		String userUuid =  Utils.validateToken(authenticationHeader);
+		if (userUuid == null) {
+			List<String> errors = new ArrayList<String>();
+			errors.add("Invalid Token");
+			List<ErrorInfo> listErrorinfo =  new ArrayList<ErrorInfo>();
+    		listErrorinfo.add(new ErrorInfo(HttpStatus.UNAUTHORIZED.value(), errors));    		
+    		ErrorOut errorOut = new ErrorOut(listErrorinfo);    		
+    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorOut);			
+		}else{
+			User user = userService.getUserByUuid(userUuid);		
+			if(user == null) {
+				List<String> errors = new ArrayList<String>();
+				errors.add("Not authorized");
+				List<ErrorInfo> listErrorinfo =  new ArrayList<ErrorInfo>();
+	    		listErrorinfo.add(new ErrorInfo(HttpStatus.UNAUTHORIZED.value(), errors));    		
+	    		ErrorOut errorOut = new ErrorOut(listErrorinfo);    		
+	    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorOut);
+			}else {
+				System.out.println("pase 1");
+				System.out.println(user);
+				Calendar calendar = Calendar.getInstance();
+				SimpleDateFormat formatter = new SimpleDateFormat("MMM d, yyyy hh:mm:ss a");
+	    		String dateLastLogin = formatter.format(calendar.getTime());
+	    		String token = Utils.getToken(user.getUuid(), user.getEmail());
+				user.setLastLogin(dateLastLogin);
+				user.setToken(token);
+				user = userService.update(user);   
+				return ResponseEntity.status(HttpStatus.OK).body(user);
+			}  
+		}
+    }
 
     @PostMapping(value = "/create",
     		consumes= {MediaType.APPLICATION_JSON_VALUE},
@@ -67,46 +101,50 @@ public class UserController {
     	List<Phone> listado = user.getPhones();
     	List<Phone> listadoOk = new ArrayList<Phone>();
     	for (Phone phone : listado) {
-    		System.out.println("pase aca la vida0");
     		Phone phoneCreated = phoneService.create(phone);   	
-    		System.out.println(phoneCreated);
     		listadoOk.add(phoneCreated);
-    		System.out.println("pase aca la vida1");
-		}
-    	System.out.println("pase aca la vida2");
-    	
+		}    	
     	user.setPhones(listadoOk);
+    	user.setEmail(user.getEmail().toLowerCase().trim());
     	
-    	List<String> errors = userService.validate(user);
-    	System.out.println(errors);
-    	
+    	List<String> errors = userService.validate(user);    	
     	if (errors.size()==0) {
     		Calendar calendar = Calendar.getInstance();
     		
-    		User userAux = repository.findByEmail(user.getEmail());
+    		User userAux = userService.getUserByEmail(user.getEmail());
     		if (userAux != null) {
-    			System.out.println(userAux.getEmail());
+    			errors = new ArrayList<String>();
+    			errors.add("The user email is already registered");
+				List<ErrorInfo> listErrorinfo =  new ArrayList<ErrorInfo>();
+	    		listErrorinfo.add(new ErrorInfo(HttpStatus.CONFLICT.value(), errors));    		
+	    		ErrorOut errorOut = new ErrorOut(listErrorinfo);    		
+	    		return ResponseEntity.status(HttpStatus.CONFLICT).body(errorOut);
+    		}else{
+	    		UUID uuid = UUID.randomUUID();
+	    		SimpleDateFormat formatter = new SimpleDateFormat("MMM d, yyyy hh:mm:ss a");
+	    		String dateCreate = formatter.format(calendar.getTime());
+	    		String token = Utils.getToken(uuid.toString(), user.getEmail());
+	    		
+	    		user.setUuid(uuid.toString());
+	    		user.setToken(token);
+	    		user.setCreated(dateCreate);
+	    		user.setLastLogin(null); 
+	    		user.setIsActive(true);
+	    		User userCreated = userService.create(user);   
+	    		
+	    		UserCreateOut userOut = new UserCreateOut();
+	    		userOut.setId(userCreated.getUuid());
+	    		userOut.setCreated(userCreated.getCreated());
+	    		userOut.setLastLogin(userCreated.getLastLogin());
+	    		userOut.setToken(userCreated.getToken());
+	    		userOut.setIsActive(userCreated.getIsActive());
+	
+	    		return ResponseEntity.status(HttpStatus.CREATED).body(userOut);
     		}
-    		
-    		
-    		UUID uuid = UUID.randomUUID();
-    		SimpleDateFormat formatter = new SimpleDateFormat("MMM d, yyyy hh:mm:ss a");
-    		String dateCreate = formatter.format(calendar.getTime());
-    		
-    		user.setUuid(uuid.toString());
-    		user.setToken(Token.getToken(uuid.toString(), user.getEmail()));
-    		user.setCreated(dateCreate);
-    		user.setLastLogin(null); 
-    		user.setIsActive(true);
-    		User userCreated = userService.create(user);   		
-
-    		return ResponseEntity.status(HttpStatus.CREATED).body(userCreated);
     	}else {    	
     		List<ErrorInfo> listErrorinfo =  new ArrayList<ErrorInfo>();
-    		listErrorinfo.add(new ErrorInfo(400, errors));
-    		
-    		ErrorOut errorOut = new ErrorOut(listErrorinfo);
-    		
+    		listErrorinfo.add(new ErrorInfo(HttpStatus.BAD_REQUEST.value(), errors));    		
+    		ErrorOut errorOut = new ErrorOut(listErrorinfo);    		
     		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorOut);
     	}
         

@@ -7,28 +7,41 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jcatalan.proyecto.cl.demo.function.Utils;
 import com.jcatalan.proyecto.cl.demo.model.User;
-import com.jcatalan.proyecto.cl.demo.service.repository.UserRepository;
+import com.jcatalan.proyecto.cl.demo.persistence.UserDao;
 
 @Service
 public class UserService {
 
     @Autowired
-    private UserRepository repository;
+    private UserDao userDao;
 
     public Optional<User> get(long userId) {
-        return repository.findById(userId);
+        return userDao.findById(userId);
+    }
+    
+    public User getUserByEmail(String email) {
+        return userDao.findByEmail(email);
+    }
+    
+    public User getUserByUuid(String uuid) {
+        return userDao.findByUuid(uuid);
     }
 
     public List<User> list() {
-        Iterable<User> users = repository.findAll();
+        Iterable<User> users = userDao.findAll();
         List<User> list = new ArrayList<User>();
         users.forEach(list::add);
         return list;
     }
 
     public User create(User user) {
-        return repository.save(user);
+        return userDao.save(user);
+    }
+    
+    public User update(User user) {
+        return userDao.save(user);
     }
     
     public List<String> validate(User user) {
@@ -37,13 +50,13 @@ public class UserService {
     	if (user.getEmail()== null || user.getEmail().isEmpty()) {
     		errors.add("email required");
     	}	
-    	if (!Validations.validateEmail(user.getEmail())){
+    	if (!Utils.validateEmail(user.getEmail())){
     		errors.add("invalid email");
     	}
     	if (user.getPassword()== null || user.getPassword().isEmpty()) {
     		errors.add("password required");
     	}else {	
-    		if (!Validations.validatePassword(user.getPassword())) {
+    		if (!Utils.validatePassword(user.getPassword())) {
     			errors.add("password invalid");
     		}
     	}

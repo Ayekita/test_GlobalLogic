@@ -1,10 +1,11 @@
-package com.jcatalan.proyecto.cl.demo.service.repository;
+package com.jcatalan.proyecto.cl.demo.persistence;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
 import com.jcatalan.proyecto.cl.demo.model.User;
 
-public interface UserRepository extends CrudRepository<User, Long> {
+public interface UserDao extends CrudRepository<User, Long> {
 	public User findByEmail(@Param("email") String email);
+	public User findByUuid(@Param("uuid") String uuid);
 
 }
