@@ -92,7 +92,7 @@ public class UserController {
 		}
     }
 
-    @PostMapping(value = "/create",
+    @PostMapping(value = "/sign-up",
     		consumes= {MediaType.APPLICATION_JSON_VALUE},
     		produces= {MediaType.APPLICATION_JSON_VALUE})
     @Transactional
