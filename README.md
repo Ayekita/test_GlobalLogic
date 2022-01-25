@@ -1,4 +1,4 @@
-# Globallogic
+# GlobalLogic
 
 ## Descripción
 El siguiente repositorio contiene ejemplos para la prueba de Globallogic.
@@ -7,6 +7,7 @@ El siguiente repositorio contiene ejemplos para la prueba de Globallogic.
 Ejecutar el ejemplo corriendo las siguientes instrucciones:
 
 1. Clonar el repositorio https://github.com/Ayekita/test_GlobalLogic.git
+   
     git clone -b main https://github.com/Ayekita/test_GlobalLogic.git
 
 2. Ingresar al directorio y ejecutar el comando "gradle build"

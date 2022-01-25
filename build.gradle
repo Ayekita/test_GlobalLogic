@@ -2,6 +2,7 @@ plugins {
 	id 'org.springframework.boot' version '2.6.3'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 	id 'java'
+	id 'groovy'
 }
 
 group = 'com.jcatalan.proyecto.cl'
@@ -10,14 +11,19 @@ sourceCompatibility = '1.8'
 
 repositories {
 	mavenCentral()
+	maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 }
 
-dependencies {
+dependencies {   
+	//Test
+	implementation "org.codehaus.groovy:groovy:3.0.8"
+	testImplementation platform("org.spockframework:spock-bom:2.0-groovy-3.0")
+	testImplementation "org.spockframework:spock-core"
+	testImplementation group: 'org.codehaus.groovy.modules.http-builder', name: 'http-builder', version: '0.7.1'	
     
-    // Spring
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    
-    
+	
+	// Spring
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'    
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -26,15 +32,12 @@ dependencies {
 	runtimeOnly 'com.h2database:h2'
 	compileOnly 'org.projectlombok:lombok'
   	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	
-	// Spock
-    /*testCompile 'org.springframework.boot:spring-boot-starter-test'
-    testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
-    testCompile 'org.spockframework:spock-spring:1.1-groovy-2.4'
-    testRuntime 'cglib:cglib-nodep:3.2.4'*/
+
 }
 
 test {
 	useJUnitPlatform()
+	  testLogging {
+	    events "passed", "skipped", "failed"
+	  }
 }
